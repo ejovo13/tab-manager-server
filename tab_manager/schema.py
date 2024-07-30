@@ -16,6 +16,7 @@ class SocketCommand(StrEnum):
     NEXT_TAB = auto()
     PREV_TAB = auto()
     FOCUS_TAB = auto()
+    MOVE_TAB = auto()
 
 
 class TabModel(BaseModel):
@@ -23,6 +24,7 @@ class TabModel(BaseModel):
 
     id: int
     title: str
+    windowId: int
     url: Optional[str] = None
 
     model_config = ConfigDict(extra="ignore")
@@ -40,13 +42,18 @@ class FocusTab(BaseModel):
     tab_id: int
 
 
+class MoveTab(BaseModel):
+    tab_id: int
+    window_id: int
+
+
 class SocketPayload(BaseModel):
     """Pydantic model of messages sent between extension and cli."""
 
     job_id: Optional[str] = None
     content: Optional[str] = None
     command: Optional[SocketCommand] = None
-    payload: Optional[dict | FocusTab] = None
+    payload: Optional[dict | FocusTab | MoveTab] = None
 
     def job_uuid(self) -> uuid.UUID:
         return uuid.UUID(self.job_id)
@@ -73,4 +80,11 @@ class SocketPayload(BaseModel):
         return SocketPayload(
             command=SocketCommand.FOCUS_TAB,
             payload=FocusTab(tab_id=tab_id),
+        )
+
+    @staticmethod
+    def move_tab(tab_id: int, window_id: int):
+        return SocketPayload(
+            command=SocketCommand.MOVE_TAB,
+            payload=MoveTab(tab_id=tab_id, window_id=window_id),
         )

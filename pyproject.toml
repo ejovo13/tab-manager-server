@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tab_manager"
-version = "0.1.2"
+version = "0.1.3"
 description = "Websocket for communicating with a simple web extension."
 authors = ["Evan Voyles <evan.voyles@intrafentech.com>"]
 readme = "README.md"

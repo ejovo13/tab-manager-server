@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from fastapi import WebSocket
-from .schema import SocketPayload
 
 
 @dataclass

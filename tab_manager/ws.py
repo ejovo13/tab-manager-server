@@ -57,6 +57,7 @@ async def websocket_endpoint(
             if socket_payload.command:
                 match socket_payload.command:
                     case SocketCommand.LIST_TABS:
+                        # logger.critical(socket_payload.payload)
                         tabs_payload = TabsPayload(**socket_payload.payload)
                         logger.info("Received [list-tabs]")
 
@@ -201,6 +202,40 @@ async def focus_tab(
         job_uuid = await send_payload(
             app_state.websocket,
             payload=SocketPayload.focus_tab(tab_id),
+        )
+
+        # Wait until our tabs have been received..
+        logger.info(f"Send message with uuid: {job_uuid}")
+
+        count = 0
+        while count < 100:
+            if not is_job_finished(job_uuid):
+                await asyncio.sleep(0.03)
+                logger.info(f"Waiting for job: {job_uuid}")
+                count += 1
+            else:
+                break
+
+        # return dict(detail="done", count=count, **tabs_payload.model_dump())
+        return {}
+    except BrowserNotConnected:
+        raise HTTPException(
+            400,
+            detail="Browser extension not connected via websocket.",
+        )
+
+
+@app.get("/tabs/move")
+async def move_tab(
+    tab_id: int,
+    window_id: int,
+    app_state: AppState = Depends(get_app_state_request),
+) -> dict:
+    """Retrieve a list of tabs from the active window."""
+    try:
+        job_uuid = await send_payload(
+            app_state.websocket,
+            payload=SocketPayload.move_tab(tab_id, window_id),
         )
 
         # Wait until our tabs have been received..
