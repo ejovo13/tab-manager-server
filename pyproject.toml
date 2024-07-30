@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tab_manager"
-version = "0.1.0"
+version = "0.1.1"
 description = "Websocket for communicating with a simple web extension."
 authors = ["Evan Voyles <evan.voyles@intrafentech.com>"]
 readme = "README.md"
@@ -15,10 +15,11 @@ orjson = "^3.10.6"
 uuid = "^1.30"
 typer = "^0.12.3"
 requests = "^2.32.3"
+python-json-logger = "^2.0.7"
 
 
 [tool.poetry.scripts]
-tabmgr = "tab_manager.main:run"
+tabmgr = "tab_manager.main:fast_api"
 tabcli = "tab_manager.cli:cli"
 
 
