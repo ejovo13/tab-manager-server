@@ -17,6 +17,8 @@ class SocketCommand(StrEnum):
     PREV_TAB = auto()
     FOCUS_TAB = auto()
     MOVE_TAB = auto()
+    CREATE_WINDOW = auto()
+    LIST_HISTORY = auto()
 
 
 class TabModel(BaseModel):
@@ -28,6 +30,16 @@ class TabModel(BaseModel):
     url: Optional[str] = None
 
     model_config = ConfigDict(extra="ignore")
+
+
+class HistoryModel(BaseModel):
+    """Pydantic model encapsulating a single history entry."""
+
+    id: str
+    visitCount: int
+    title: Optional[str] = None
+    url: str
+    lastVisitTime: int
 
 
 class TabsPayload(BaseModel):
@@ -87,4 +99,16 @@ class SocketPayload(BaseModel):
         return SocketPayload(
             command=SocketCommand.MOVE_TAB,
             payload=MoveTab(tab_id=tab_id, window_id=window_id),
+        )
+
+    @staticmethod
+    def create_window():
+        return SocketPayload(
+            command=SocketCommand.CREATE_WINDOW,
+        )
+
+    @staticmethod
+    def list_history():
+        return SocketPayload(
+            command=SocketCommand.LIST_HISTORY,
         )

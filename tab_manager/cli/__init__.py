@@ -81,6 +81,28 @@ def move_tab(tab_id: int, window_id: int, host: str = "localhost", port: int = 8
     print(json_dict)
 
 
+@cli.command(name="window")
+def create_window(host: str = "localhost", port: int = 8001):
+    """Move a tab to a different window."""
+    response = requests.get(
+        f"http://{host}:{port}/windows/create",
+    )
+    json_dict = response.json()
+    assert response.status_code == 200, str(json_dict)
+    print(json_dict)
+
+
+@cli.command(name="history")
+def create_window(host: str = "localhost", port: int = 8001):
+    """Move a tab to a different window."""
+    response = requests.get(
+        f"http://{host}:{port}/history",
+    )
+    json_dict = response.json()
+    assert response.status_code == 200, str(json_dict)
+    print(json_dict)
+
+
 @cli.command(name="congregate")
 def congregate(window_id: int, host: str = "localhost", port: int = 8001):
     """Congregate all tabs to a single window."""

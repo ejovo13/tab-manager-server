@@ -3,7 +3,7 @@
 from enum import StrEnum, auto
 import uuid
 import asyncio
-from .schema import SocketPayload, TabsPayload, SocketCommand
+from .schema import SocketPayload, TabsPayload, SocketCommand, HistoryModel
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.exceptions import HTTPException
 from contextlib import asynccontextmanager
@@ -42,6 +42,34 @@ g_SEND_JOBS: dict[uuid, JobStatus] = {}
 g_JOB_RESPONSES: dict[uuid, Any] = {}
 
 
+async def send_command_ws(app_state: AppState, payload: SocketPayload) -> uuid.UUID:
+    """Send a command to the websocket."""
+    try:
+        job_uuid = await send_payload(
+            app_state.websocket,
+            payload=payload,
+        )
+
+        # Wait until our tabs have been received..
+        logger.info(f"Send message with uuid: {job_uuid}")
+
+        count = 0
+        while count < 100:
+            if not is_job_finished(job_uuid):
+                await asyncio.sleep(0.03)
+                logger.info(f"Waiting for job: {job_uuid}")
+                count += 1
+            else:
+                break
+
+        return job_uuid
+    except BrowserNotConnected:
+        raise HTTPException(
+            400,
+            detail="Browser extension not connected via websocket.",
+        )
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
@@ -68,6 +96,13 @@ async def websocket_endpoint(
 
                         for t in tabs_payload.tabs:
                             logger.info(str(t))
+
+                    case SocketCommand.LIST_HISTORY:
+                        logger.info("Received [list-history]")
+
+                        if socket_payload.job_id is not None:
+                            job_uuid = socket_payload.job_uuid()
+                            g_JOB_RESPONSES[job_uuid] = socket_payload.payload
 
             if socket_payload.job_id is not None:
                 global g_SEND_JOBS
@@ -102,127 +137,31 @@ def is_job_finished(job_id: uuid.UUID) -> bool:
 
 
 @app.get("/tabs")
-async def get_tabs(app_state: AppState = Depends(get_app_state_request)) -> dict:
+async def get_tabs(app_state: AppState = Depends(get_app_state_request)) -> TabsPayload:
     """Retrieve a list of tabs from the active window."""
-    try:
-        job_uuid = await send_payload(
-            app_state.websocket,
-            payload=SocketPayload.list_tabs(),
-        )
-
-        # Wait until our tabs have been received..
-        logger.info(f"Send message with uuid: {job_uuid}")
-
-        count = 0
-        while count < 100:
-            if not is_job_finished(job_uuid):
-                await asyncio.sleep(0.03)
-                logger.info(f"Waiting for job: {job_uuid}")
-                count += 1
-            else:
-                break
-
-        tabs_payload: TabsPayload = g_JOB_RESPONSES[job_uuid]
-        logger.info(f"Recovered {len(tabs_payload.tabs)} tabs!")
-        return dict(detail="done", count=count, **tabs_payload.model_dump())
-    except BrowserNotConnected:
-        raise HTTPException(
-            400,
-            detail="Browser extension not connected via websocket.",
-        )
+    job_uuid = await send_command_ws(app_state, SocketPayload.list_tabs())
+    return g_JOB_RESPONSES[job_uuid]
 
 
 @app.get("/tabs/prev")
-async def next_tab(app_state: AppState = Depends(get_app_state_request)) -> dict:
+async def prev_tab(app_state: AppState = Depends(get_app_state_request)) -> uuid.UUID:
     """Retrieve a list of tabs from the active window."""
-    try:
-        job_uuid = await send_payload(
-            app_state.websocket,
-            payload=SocketPayload.prev_tab(),
-        )
-
-        # Wait until our tabs have been received..
-        logger.info(f"Send message with uuid: {job_uuid}")
-
-        count = 0
-        while count < 100:
-            if not is_job_finished(job_uuid):
-                await asyncio.sleep(0.03)
-                logger.info(f"Waiting for job: {job_uuid}")
-                count += 1
-            else:
-                break
-
-        # return dict(detail="done", count=count, **tabs_payload.model_dump())
-        return {}
-    except BrowserNotConnected:
-        raise HTTPException(
-            400,
-            detail="Browser extension not connected via websocket.",
-        )
+    return await send_command_ws(app_state, SocketPayload.prev_tab())
 
 
 @app.get("/tabs/next")
-async def next_tab(app_state: AppState = Depends(get_app_state_request)) -> dict:
+async def next_tab(app_state: AppState = Depends(get_app_state_request)) -> uuid.UUID:
     """Retrieve a list of tabs from the active window."""
-    try:
-        job_uuid = await send_payload(
-            app_state.websocket,
-            payload=SocketPayload.next_tab(),
-        )
-
-        # Wait until our tabs have been received..
-        logger.info(f"Send message with uuid: {job_uuid}")
-
-        count = 0
-        while count < 100:
-            if not is_job_finished(job_uuid):
-                await asyncio.sleep(0.03)
-                logger.info(f"Waiting for job: {job_uuid}")
-                count += 1
-            else:
-                break
-
-        # return dict(detail="done", count=count, **tabs_payload.model_dump())
-        return {}
-    except BrowserNotConnected:
-        raise HTTPException(
-            400,
-            detail="Browser extension not connected via websocket.",
-        )
+    return await send_command_ws(app_state, SocketPayload.next_tab())
 
 
 @app.get("/tabs/focus")
 async def focus_tab(
     tab_id: int,
     app_state: AppState = Depends(get_app_state_request),
-) -> dict:
+) -> uuid.UUID:
     """Retrieve a list of tabs from the active window."""
-    try:
-        job_uuid = await send_payload(
-            app_state.websocket,
-            payload=SocketPayload.focus_tab(tab_id),
-        )
-
-        # Wait until our tabs have been received..
-        logger.info(f"Send message with uuid: {job_uuid}")
-
-        count = 0
-        while count < 100:
-            if not is_job_finished(job_uuid):
-                await asyncio.sleep(0.03)
-                logger.info(f"Waiting for job: {job_uuid}")
-                count += 1
-            else:
-                break
-
-        # return dict(detail="done", count=count, **tabs_payload.model_dump())
-        return {}
-    except BrowserNotConnected:
-        raise HTTPException(
-            400,
-            detail="Browser extension not connected via websocket.",
-        )
+    return await send_command_ws(app_state, SocketPayload.focus_tab(tab_id))
 
 
 @app.get("/tabs/move")
@@ -230,33 +169,27 @@ async def move_tab(
     tab_id: int,
     window_id: int,
     app_state: AppState = Depends(get_app_state_request),
-) -> dict:
+) -> uuid.UUID:
     """Retrieve a list of tabs from the active window."""
-    try:
-        job_uuid = await send_payload(
-            app_state.websocket,
-            payload=SocketPayload.move_tab(tab_id, window_id),
-        )
+    return await send_command_ws(app_state, SocketPayload.move_tab(tab_id, window_id))
 
-        # Wait until our tabs have been received..
-        logger.info(f"Send message with uuid: {job_uuid}")
 
-        count = 0
-        while count < 100:
-            if not is_job_finished(job_uuid):
-                await asyncio.sleep(0.03)
-                logger.info(f"Waiting for job: {job_uuid}")
-                count += 1
-            else:
-                break
+@app.get("/windows/create")
+async def create_window(
+    app_state: AppState = Depends(get_app_state_request),
+) -> uuid.UUID:
+    """Retrieve a list of tabs from the active window."""
+    return await send_command_ws(app_state, SocketPayload.create_window())
 
-        # return dict(detail="done", count=count, **tabs_payload.model_dump())
-        return {}
-    except BrowserNotConnected:
-        raise HTTPException(
-            400,
-            detail="Browser extension not connected via websocket.",
-        )
+
+@app.get("/history")
+async def list_history(
+    app_state: AppState = Depends(get_app_state_request),
+) -> list[HistoryModel]:
+    """Retrieve a list of History objects."""
+    job_uuid = await send_command_ws(app_state, SocketPayload.list_history())
+    history_dicts: list[dict] = g_JOB_RESPONSES[job_uuid]["history"]
+    return [HistoryModel(**hm) for hm in history_dicts]
 
 
 @app.get("/")
