@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "native-app"
+version = "0.1.0"
+description = "Websocket for communicating with a simple web extension."
+authors = ["Evan Voyles <evan.voyles@intrafentech.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = {extras = ["websocket"], version = "^0.111.1"}
+websockets = "^12.0"
+uvicorn = "^0.30.3"
+pydantic = "^2.8.2"
+orjson = "^3.10.6"
+uuid = "^1.30"
+typer = "^0.12.3"
+requests = "^2.32.3"
+
+
+[tool.poetry.scripts]
+tabmgr = "native_app.main:run"
+tabcli = "native_app.cli:cli"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
