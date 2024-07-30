@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "native-app"
+name = "tab_manager"
 version = "0.1.0"
 description = "Websocket for communicating with a simple web extension."
 authors = ["Evan Voyles <evan.voyles@intrafentech.com>"]
@@ -18,8 +18,8 @@ requests = "^2.32.3"
 
 
 [tool.poetry.scripts]
-tabmgr = "native_app.main:run"
-tabcli = "native_app.cli:cli"
+tabmgr = "tab_manager.main:run"
+tabcli = "tab_manager.cli:cli"
 
 
 [build-system]
