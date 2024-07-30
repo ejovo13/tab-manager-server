@@ -7,7 +7,7 @@ from fastapi import WebSocket
 
 async def get_app_state() -> AppState:
     """Retrieve the application state object from within a websocket connection."""
-    from native_app.ws import app
+    from tab_manager.ws import app
 
     # Set during lifespan function
     return app.state.app_state
